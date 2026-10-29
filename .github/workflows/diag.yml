@@ -1,0 +1,18 @@
+name: diag
+on: issue_comment
+permissions:
+  issues: write
+jobs:
+  diag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: probe issue endpoints with the job token
+        env:
+          T: ${{ secrets.GITHUB_TOKEN }}
+          N: ${{ github.event.issue.number }}
+        run: |
+          echo "number=$N"
+          echo -n "comment_status="; curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 -X POST -H "Authorization: Bearer $T" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$N/comments" -d '{"body":"diag comment"}'
+          echo -n "label_status="; curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 -X POST -H "Authorization: Bearer $T" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$N/labels" -d '{"labels":["kind/support"]}'
+          echo -n "close_status="; curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 -X PATCH -H "Authorization: Bearer $T" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$N" -d '{"state":"closed"}'
+          echo -n "token_perms="; curl -sS --max-time 30 -H "Authorization: Bearer $T" "https://api.github.com/repos/$GITHUB_REPOSITORY" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('permissions'))"
