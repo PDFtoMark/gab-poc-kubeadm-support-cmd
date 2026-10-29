@@ -1,0 +1,53 @@
+name: poc-support-command-authz
+on: issue_comment
+permissions: {}
+jobs:
+  exact_shape:
+    permissions:
+      issues: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: check for the /support command
+        id: command
+        uses: xt0rted/slash-command-action@bf51f8f5f4ea3d58abc7eca58f77104182b23e88 # v2.0.0
+        continue-on-error: true
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          command: support
+          reaction: "false"
+          allow-edits: "true"
+          permission-level: admin
+      - name: diagnostics
+        if: always()
+        run: |
+          echo "OUTCOME=${{ steps.command.outcome }}"
+          echo "CONCLUSION=${{ steps.command.conclusion }}"
+          echo "CMDNAME=[${{ steps.command.outputs.command-name }}]"
+      - name: downstream gate as in target
+        if: steps.command.outputs.command-name
+        run: echo "DOWNSTREAM_RAN_EXACT_SHAPE output=${{ steps.command.outputs.command-name }}"
+
+  gate_failure_sim:
+    permissions:
+      issues: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: check for the /support command with a token that cannot resolve permission
+        id: command
+        uses: xt0rted/slash-command-action@bf51f8f5f4ea3d58abc7eca58f77104182b23e88 # v2.0.0
+        continue-on-error: true
+        with:
+          repo-token: ghp_000000000000000000000000000000000000
+          command: support
+          reaction: "false"
+          allow-edits: "true"
+          permission-level: admin
+      - name: diagnostics
+        if: always()
+        run: |
+          echo "OUTCOME=${{ steps.command.outcome }}"
+          echo "CONCLUSION=${{ steps.command.conclusion }}"
+          echo "CMDNAME=[${{ steps.command.outputs.command-name }}]"
+      - name: downstream gate as in target
+        if: steps.command.outputs.command-name
+        run: echo "DOWNSTREAM_RAN_AFTER_PERMISSION_FAILURE output=${{ steps.command.outputs.command-name }}"
